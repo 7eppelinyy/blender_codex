@@ -16,7 +16,6 @@ class CodexPreferences(bpy.types.AddonPreferences):
             ("gpt-4-turbo", "GPT-4 Turbo", "Strong reasoning"),
             ("o3-mini", "o3-mini", "Lightweight reasoning model"),
             ("gpt-4.1", "GPT-4.1", "Latest flagship"),
-            ("", "", ""),
             ("deepseek-chat", "DeepSeek-V3", "Fast, cost-effective"),
             ("deepseek-reasoner", "DeepSeek-R1", "Deep reasoning model"),
             ("deepseek-v4-pro", "DeepSeek-V4 Pro", "Latest flagship, strongest"),
