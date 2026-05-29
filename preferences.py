@@ -19,8 +19,9 @@ class CodexPreferences(bpy.types.AddonPreferences):
             ("", "", ""),
             ("deepseek-chat", "DeepSeek-V3", "Fast, cost-effective"),
             ("deepseek-reasoner", "DeepSeek-R1", "Deep reasoning model"),
+            ("deepseek-v4-pro", "DeepSeek-V4 Pro", "Latest flagship, strongest"),
         ],
-        default="gpt-4o",
+        default="deepseek-v4-pro",
         description="Model used for code generation",
     )
     max_tokens: bpy.props.IntProperty(
