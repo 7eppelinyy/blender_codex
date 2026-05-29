@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Codex AI Assistant",
     "author": "Zeppelin",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Codex",
     "description": "Natural language to Blender Python scripting via OpenAI Codex / GPT",
