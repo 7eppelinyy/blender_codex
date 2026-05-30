@@ -140,6 +140,14 @@ class CODEX_OT_execute_code(bpy.types.Operator):
 
         context.scene.codex_status = "正在执行…"
 
+        # 先检查语法，给出精确的错误位置
+        try:
+            compile(LAST_CODE, "<AI脚本>", "exec")
+        except SyntaxError as e:
+            context.scene.codex_status = f"语法错误: 第 {e.lineno} 行 — {e.msg}"
+            self.report({"ERROR"}, f"第 {e.lineno} 行: {e.msg}")
+            return {"CANCELLED"}
+
         namespace = {"bpy": bpy, "__builtins__": __builtins__}
         try:
             exec(LAST_CODE, namespace)
