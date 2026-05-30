@@ -1,10 +1,10 @@
 bl_info = {
     "name": "Codex AI Assistant",
     "author": "Zeppelin",
-    "version": (1, 0, 2),
+    "version": (1, 1, 0),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Codex",
-    "description": "Natural language to Blender Python scripting via OpenAI Codex / GPT",
+    "description": "AI 驱动的 Blender 建模助手，支持文字描述和图片识别转 3D",
     "category": "3D View",
     "support": "COMMUNITY",
     "tracker_url": "https://github.com/yourname/blender-codex/issues",
