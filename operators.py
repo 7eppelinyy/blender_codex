@@ -24,40 +24,63 @@ def _do_request(prompt: str, image_path: str, history: list[dict] | None):
     _worker_result = (code or "", error or "")
 
 
+def _tag_redraw_all():
+    """Request redraw of all 3D View areas so the panel progress bar updates."""
+    try:
+        for window in bpy.context.window_manager.windows:
+            for area in window.screen.areas:
+                if area.type == 'VIEW_3D':
+                    area.tag_redraw()
+    except Exception:
+        pass
+
+
 def _check_worker():
     global _worker, _worker_result, LAST_CODE, CODE_HISTORY
 
     if _worker is not None and _worker.is_alive():
-        elapsed = time.time() - _request_start_time
-        progress = min(elapsed / API_TIMEOUT_ESTIMATE, 0.92)
-        scene = bpy.context.scene
-        scene.codex_progress = progress
-        scene.codex_elapsed = int(elapsed)
+        try:
+            elapsed = time.time() - _request_start_time
+            progress = min(elapsed / API_TIMEOUT_ESTIMATE, 0.92)
+            scene = bpy.context.scene
+            scene.codex_progress = progress
+            scene.codex_elapsed = int(elapsed)
+            _tag_redraw_all()
+        except Exception:
+            pass
         return WORKER_CHECK_INTERVAL
 
     result = _worker_result
     _worker = None
     _worker_result = None
 
-    scene = bpy.context.scene
-    scene.codex_loading = False
+    try:
+        scene = bpy.context.scene
+        scene.codex_loading = False
 
-    if result is None:
-        scene.codex_status = "错误：未获取到 API 返回结果。"
-        return None
+        if result is None:
+            scene.codex_status = "错误：未获取到 API 返回结果。"
+            _tag_redraw_all()
+            return None
 
-    code, error = result
-    if error:
-        scene.codex_status = f"错误：{error}"
-        scene.codex_progress = 0.0
-        return None
+        code, error = result
+        if error:
+            scene.codex_status = f"错误：{error}"
+            scene.codex_progress = 0.0
+            _tag_redraw_all()
+            return None
 
-    LAST_CODE = code
-    scene.codex_progress = 1.0
-    prompt = scene.codex_prompt.strip() or "(图片识别)"
-    CODE_HISTORY.append({"role": "user", "content": prompt})
-    CODE_HISTORY.append({"role": "assistant", "content": code})
-    scene.codex_status = f"完成！生成了 {len(code)} 个字符的代码。"
+        LAST_CODE = code
+        scene.codex_progress = 1.0
+        prompt = scene.codex_prompt.strip() or "(图片识别)"
+        CODE_HISTORY.append({"role": "user", "content": prompt})
+        CODE_HISTORY.append({"role": "assistant", "content": code})
+        scene.codex_status = f"完成！生成了 {len(code)} 个字符的代码。"
+    except Exception:
+        pass
+    finally:
+        _tag_redraw_all()
+
     return None
 
 
