@@ -4,7 +4,6 @@ import base64
 import urllib.request
 import urllib.error
 import urllib.parse
-import ssl
 from textwrap import dedent
 
 from . import ADDON_ID
@@ -76,12 +75,9 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
         req = urllib.request.Request(url, data=body, method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", f"Bearer {api_key}")
-        ctx = ssl.create_default_context()
-        ctx.check_hostname = False
-        ctx.verify_mode = ssl.CERT_NONE
 
         try:
-            with urllib.request.urlopen(req, timeout=45, context=ctx) as resp:
+            with urllib.request.urlopen(req, timeout=45) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             try:
@@ -116,9 +112,8 @@ def _search_web(query: str, max_results: int = 5) -> str:
     """Search DuckDuckGo and return formatted results as plain text."""
     url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
     req = urllib.request.Request(url, headers={"User-Agent": "BlenderCodex/1.0"})
-    ctx = ssl.create_default_context()
     try:
-        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+        with urllib.request.urlopen(req, timeout=10) as resp:
             html = resp.read().decode("utf-8", errors="replace")
     except Exception:
         return "（搜索超时或网络错误）"
