@@ -89,6 +89,10 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
                 raw = resp.read()
                 print(f"[Codex] 读取完成，{len(raw)} 字节")
                 data = json.loads(raw.decode("utf-8"))
+
+            code = data["choices"][0]["message"]["content"]
+            code = _strip_markdown_fences(code)
+            return code, None
         except urllib.error.HTTPError as e:
             try:
                 detail = json.loads(e.read().decode("utf-8"))
@@ -104,6 +108,10 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
             import traceback
             traceback.print_exc()
             last_error = f"连接失败(errno={e.errno}): {e.strerror or e}"
+        except (KeyError, IndexError, TypeError) as e:
+            import traceback
+            traceback.print_exc()
+            return "", f"API 返回格式异常: {e}"
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -114,14 +122,6 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
             time.sleep(2)
 
     return "", f"{last_error}（重试 3 次后仍失败）"
-
-    try:
-        code = data["choices"][0]["message"]["content"]
-    except (KeyError, IndexError, TypeError) as e:
-        return "", f"API 返回格式异常: {e}"
-
-    code = _strip_markdown_fences(code)
-    return code, None
 
 
 def _search_web(query: str, max_results: int = 5) -> str:
