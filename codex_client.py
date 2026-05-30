@@ -56,7 +56,7 @@ def get_api_config():
 
 
 def _api_request(messages: list[dict]) -> tuple[str, str | None]:
-    """Send messages to API, return (content, error)."""
+    """Send messages to API, return (content, error).  Retries on network errors."""
     api_key, model, max_tokens, temperature, api_base = get_api_config()
 
     if not api_key:
@@ -70,25 +70,36 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     }).encode("utf-8")
 
     url = f"{api_base.rstrip('/')}/chat/completions"
-    req = urllib.request.Request(url, data=body, method="POST")
-    req.add_header("Content-Type", "application/json")
-    req.add_header("Authorization", f"Bearer {api_key}")
-    ctx = ssl.create_default_context()
 
-    try:
-        with urllib.request.urlopen(req, timeout=30, context=ctx) as resp:
-            data = json.loads(resp.read().decode("utf-8"))
-    except urllib.error.HTTPError as e:
+    last_error = ""
+    for attempt in range(3):
+        req = urllib.request.Request(url, data=body, method="POST")
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", f"Bearer {api_key}")
+        ctx = ssl.create_default_context()
+
         try:
-            detail = json.loads(e.read().decode("utf-8"))
-            msg = detail.get("error", {}).get("message", str(e))
-        except Exception:
-            msg = str(e)
-        return "", f"HTTP {e.code}: {msg}"
-    except urllib.error.URLError as e:
-        return "", f"网络错误: {e.reason}"
-    except Exception as e:
-        return "", f"未知错误: {e}"
+            with urllib.request.urlopen(req, timeout=45, context=ctx) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            try:
+                detail = json.loads(e.read().decode("utf-8"))
+                msg = detail.get("error", {}).get("message", str(e))
+            except Exception:
+                msg = str(e)
+            return "", f"HTTP {e.code}: {msg}"
+        except urllib.error.URLError as e:
+            last_error = f"网络错误: {e.reason}"
+        except OSError as e:
+            last_error = f"连接失败: {e}"
+        except Exception as e:
+            return "", f"未知错误: {e}"
+
+        if attempt < 2:
+            import time
+            time.sleep(2)
+
+    return "", f"{last_error}（重试 3 次后仍失败，请检查网络或代理设置）"
 
     try:
         code = data["choices"][0]["message"]["content"]

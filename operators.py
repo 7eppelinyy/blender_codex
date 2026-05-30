@@ -12,7 +12,7 @@ _worker_result: tuple[str, str] | None = None
 _request_start_time: float = 0
 
 WORKER_CHECK_INTERVAL = 0.3
-API_TIMEOUT_ESTIMATE = 25.0
+API_TIMEOUT_ESTIMATE = 48.0
 
 
 def _do_request(prompt: str, image_path: str, history: list[dict] | None):
