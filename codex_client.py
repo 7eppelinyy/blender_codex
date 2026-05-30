@@ -81,7 +81,7 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
         req.add_header("Authorization", f"Bearer {api_key}")
 
         try:
-            with opener.open(req, timeout=(15, 180)) as resp:
+            with opener.open(req, timeout=180) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
         except urllib.error.HTTPError as e:
             try:
