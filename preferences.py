@@ -26,10 +26,10 @@ class CodexPreferences(bpy.types.AddonPreferences):
     )
     max_tokens: bpy.props.IntProperty(
         name="Max Tokens",
-        default=2048,
+        default=4096,
         min=256,
         max=16384,
-        description="Maximum response length in tokens",
+        description="Maximum response length in tokens (set higher for complex scenes)",
     )
     temperature: bpy.props.FloatProperty(
         name="Temperature",
