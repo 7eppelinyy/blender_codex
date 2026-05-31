@@ -6,56 +6,56 @@ class CodexPreferences(bpy.types.AddonPreferences):
     bl_idname = ADDON_ID
 
     api_key: bpy.props.StringProperty(
-        name="API Key",
+        name="API 密钥",
         subtype="PASSWORD",
-        description="API key (OpenAI: sk-… / DeepSeek: sk-…)",
+        description="填入你的 API 密钥（OpenAI: sk-… / DeepSeek: sk-…）",
     )
     model: bpy.props.EnumProperty(
-        name="Model",
+        name="模型",
         items=[
-            ("gpt-4o", "GPT-4o", "Fast, capable, recommended"),
-            ("gpt-4-turbo", "GPT-4 Turbo", "Strong reasoning"),
-            ("o3-mini", "o3-mini", "Lightweight reasoning model"),
-            ("gpt-4.1", "GPT-4.1", "Latest flagship"),
-            ("deepseek-chat", "DeepSeek-V3", "Fast, cost-effective"),
-            ("deepseek-reasoner", "DeepSeek-R1", "Deep reasoning model"),
-            ("deepseek-v4-pro", "DeepSeek-V4 Pro", "Latest flagship, strongest"),
+            ("gpt-4o", "GPT-4o", "快速、强大，推荐使用"),
+            ("gpt-4-turbo", "GPT-4 Turbo", "推理能力强"),
+            ("o3-mini", "o3-mini", "轻量推理模型"),
+            ("gpt-4.1", "GPT-4.1", "最新旗舰模型"),
+            ("deepseek-chat", "DeepSeek-V3", "快速、高性价比"),
+            ("deepseek-reasoner", "DeepSeek-R1", "深度推理模型"),
+            ("deepseek-v4-pro", "DeepSeek-V4 Pro", "最新旗舰，综合最强"),
         ],
         default="deepseek-v4-pro",
-        description="Model used for code generation",
+        description="选择用于生成代码的 AI 模型",
     )
     max_tokens: bpy.props.IntProperty(
-        name="Max Tokens",
+        name="最大 Token 数",
         default=4096,
         min=256,
         max=16384,
-        description="Maximum response length in tokens (set higher for complex scenes)",
+        description="AI 回复的最大长度（复杂场景建议 4096 以上）",
     )
     temperature: bpy.props.FloatProperty(
-        name="Temperature",
+        name="温度",
         default=0.3,
         min=0.0,
         max=2.0,
         step=0.1,
         precision=2,
-        description="Higher = more creative, lower = more deterministic",
+        description="越高越有创意，越低越稳定可靠",
     )
     api_base: bpy.props.StringProperty(
-        name="API Base",
+        name="API 地址",
         default="https://api.openai.com/v1",
-        description="OpenAI-compatible API endpoint (supports proxies and mirrors)",
+        description="兼容 OpenAI 协议的 API 端点（支持代理和镜像站）",
     )
     enable_search: bpy.props.BoolProperty(
-        name="Enable Web Search",
+        name="启用联网搜索",
         default=False,
-        description="Search the web and inject results into the prompt before sending to AI",
+        description="发送请求前先联网搜索，将结果注入提示词",
     )
 
     def draw(self, context):
         layout = self.layout
         layout.use_property_split = True
 
-        col = layout.column(heading="API Key")
+        col = layout.column(heading="API 密钥")
         col.prop(self, "api_key", text="")
         col.prop(self, "api_base")
 
@@ -67,12 +67,12 @@ class CodexPreferences(bpy.types.AddonPreferences):
 
         layout.separator()
         box = layout.box()
-        box.label(text="Setup Guide", icon="INFO")
+        box.label(text="设置指南", icon="INFO")
         col = box.column(align=True)
-        col.label(text="OpenAI: platform.openai.com → API Keys")
-        col.label(text="DeepSeek: platform.deepseek.com → API Keys")
-        col.label(text="Set API Base to https://api.deepseek.com")
-        col.label(text="Then paste your key above")
+        col.label(text="OpenAI：platform.openai.com → API Keys")
+        col.label(text="DeepSeek：platform.deepseek.com → API Keys")
+        col.label(text="将 API 地址设为 https://api.deepseek.com")
+        col.label(text="然后在上方粘贴你的密钥即可")
 
 
 def register():

@@ -4,7 +4,7 @@ import shutil
 import pathlib
 
 bl_info = {
-    "name": "Codex AI Assistant",
+    "name": "Codex AI 建模助手",
     "author": "Zeppelin",
     "version": (1, 3, 1),
     "blender": (4, 0, 0),

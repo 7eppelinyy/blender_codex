@@ -12,7 +12,7 @@ from .operators import (
 
 
 class CODEX_PT_main(bpy.types.Panel):
-    bl_label = "Codex AI Assistant"
+    bl_label = "Codex AI 建模助手"
     bl_idname = "CODEX_PT_main"
     bl_space_type = "VIEW_3D"
     bl_region_type = "UI"
