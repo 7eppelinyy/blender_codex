@@ -3,6 +3,7 @@ import time
 import threading
 import bpy
 from . import codex_client
+from .codex_client import _fix_api_compat
 
 CODE_HISTORY: list[dict] = []
 LAST_CODE: str = ""
@@ -154,6 +155,12 @@ class CODEX_OT_execute_code(bpy.types.Operator):
             return {"CANCELLED"}
 
         context.scene.codex_status = "正在执行…"
+
+        # 执行前最后一次代码修正（安全网）
+        patched = _fix_api_compat(LAST_CODE)
+        if patched != LAST_CODE:
+            print("[Codex] _fix_api_compat applied changes", flush=True)
+        LAST_CODE = patched
 
         _write_to_text_editor(LAST_CODE)
 
