@@ -362,15 +362,12 @@ def _fix_api_compat(code: str) -> str:
     """
     import re
 
-    # 1. Socket name fixes for Blender 4.0+ Principled BSDF
-    socket_fixes = [
-        (r"""inputs\[(['\"])Specular\1\]""",
-         """inputs['Specular IOR Level']"""),
-        (r"""inputs\[(['\"])Subsurface\1\]""",
-         """inputs['Subsurface Weight']"""),
-    ]
-    for pattern, replacement in socket_fixes:
-        code = re.sub(pattern, replacement, code)
+    # 1. Socket name fixes — use str.replace() for 100% reliability.
+    #    Do BOTH quote styles: the LLM may use either.
+    code = code.replace("['Specular']", "['Specular IOR Level']")
+    code = code.replace('["Specular"]', '["Specular IOR Level"]')
+    code = code.replace("['Subsurface']", "['Subsurface Weight']")
+    code = code.replace('["Subsurface"]', '["Subsurface Weight"]')
 
     # 2. Strip lines that try to enable addons (comment them out)
     code = re.sub(
