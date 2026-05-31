@@ -1,5 +1,6 @@
 import json
 import re
+import sys
 import base64
 import urllib.request
 import urllib.error
@@ -16,8 +17,34 @@ Rules:
 - Code must be complete and self-contained — import bpy if needed, define variables before use.
 - If the user asks for something impossible, output a Python comment explaining why.
 - Use `import bpy` at the top of every script.
-- Prefer `bpy.ops` operators for modeling tasks, `bpy.data` / `bpy.context` for data access.
-- Always include a final `print("Done.")` at the end so Blender confirms execution.
+- Use ONLY ASCII characters. Python does not accept full-width/half-width Unicode punctuation (U+FF00–U+FFEF) like ，。；：（）！？. Every comma must be U+002C, every parenthesis U+0028/U+0029. If you write comments in a non-English language, use English instead.
+- NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
+- NEVER use operators that require third-party or optional addons. The following DO NOT exist in vanilla Blender and MUST NOT be used:
+  * bpy.ops.mesh.primitive_teapot_add() — requires "Extra Objects" addon
+  * bpy.ops.mesh.primitive_geodesic_dome_add()
+  * bpy.ops.mesh.primitive_stepped_cylinder_add()
+  * Any other bpy.ops.mesh.primitive_* that is not a standard Blender primitive
+- For complex shapes (teapot, dome, etc.), build them from scratch using:
+  * bpy.data.meshes.new() + mesh.from_pydata(vertices, edges, faces)
+  * bpy.types.Curve + screw modifier for rotational symmetry (ideal for teapot body, cups, vases)
+  * Bezier curves for handles, spouts, and decorative elements
+  * Standard primitives: bpy.ops.mesh.primitive_cube_add, primitive_uv_sphere_add,
+    primitive_cylinder_add, primitive_cone_add, primitive_torus_add,
+    primitive_grid_add, primitive_circle_add, primitive_monkey_add, primitive_ico_sphere_add
+- If a shape cannot be built with standard primitives and mesh API alone, explain in a comment and build the closest approximation.
+
+Quality requirements:
+- ALWAYS clear the default cube before creating anything.
+- Use high segment counts for primitives (segments >= 64 for circles/spheres/cylinders).
+- Apply `shade_smooth()` on curved objects. Add a BEVEL modifier (segments=3, amount=0.02) and a SUBSURF modifier (levels=2) for smooth, professional results.
+- Use Principled BSDF for ALL materials — set base color, roughness (0.3–0.5 unless glossy), metallic where appropriate, and specular.
+- Set up proper three-point lighting: one key Area light (200W, warm white), one fill Area light (100W, cool white), one rim/back Area light (150W). Scale lights proportional to scene size.
+- Add a ground plane with a subtle material under the subjects.
+- Set the World surface to a soft gradient color (use Background node with 0.05–0.15 strength).
+- Set up a camera at a flattering angle framing the subject, and set render resolution to 1920x1080 at 100%.
+- Use Cycles engine with 128 samples and enable OpenImageDenoise.
+- If the user says "render" or "渲染", add `bpy.ops.render.render(write_still=True)` at the end.
+- Always include a final `print("Done.")` at the end.
 - Keep code concise and readable.
 """)
 
@@ -27,8 +54,22 @@ You are a Blender Python scripting engine. Analyze the provided image and genera
 Rules:
 - Output ONLY raw Python code. No markdown fences, no explanations, no commentary.
 - Identify the main object in the image and model it using Blender's `bpy` API.
-- Include materials, colors, and lighting if visible.
 - Code must be complete and self-contained — import bpy if needed.
+- Use ONLY ASCII characters. Python does not accept full-width/half-width Unicode punctuation (U+FF00–U+FFEF) like ，。；：（）！？. Every comma must be U+002C, every parenthesis U+0028/U+0029.
+- NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
+- NEVER use operators that require third-party or optional addons (e.g. `bpy.ops.mesh.primitive_teapot_add`). Use only standard Blender primitives + raw mesh API (`from_pydata`, curves + screw modifier, etc.) for complex shapes.
+
+Quality requirements:
+- ALWAYS clear the default cube before creating anything.
+- Use high segment counts for curved primitives (segments >= 64).
+- Apply `shade_smooth()` on curved objects. Add BEVEL (segments=3, amount=0.02) and SUBSURF (levels=2) modifiers for smooth results.
+- Match colors from the image using Principled BSDF materials. Set roughness, metallic, and specular appropriately.
+- Set up a three-point lighting setup matching the image mood: key Area light (200W), fill Area light (100W), rim/back Area light (150W).
+- Add a subtle ground plane or floor.
+- Set World surface to a soft dark or neutral background (Background node, strength 0.05–0.15).
+- Set up a camera framing the subject at a flattering angle, render resolution 1920x1080 at 100%.
+- Use Cycles engine with 128 samples and enable OpenImageDenoise.
+- If the user says "render" or "渲染", add `bpy.ops.render.render(write_still=True)` at the end.
 - Always include a final `print("Done.")` at the end.
 - Keep code concise and readable.
 """)
@@ -69,7 +110,7 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     }).encode("utf-8")
 
     url = f"{api_base.rstrip('/')}/chat/completions"
-    print(f"[Codex] 请求: model={model} url={url} key_len={len(api_key)}")
+    print(f"[Codex] 请求: model={model} url={url} key_len={len(api_key)}", flush=True)
 
     # 直连，跳过系统代理（代理可能干扰 HTTPS 连接）
     proxy_handler = urllib.request.ProxyHandler({})
@@ -82,15 +123,25 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
         req.add_header("Authorization", f"Bearer {api_key}")
 
         try:
-            print(f"[Codex] 第 {attempt + 1}/3 次尝试…")
+            print(f"[Codex] 第 {attempt + 1}/3 次尝试…", flush=True)
             with opener.open(req, timeout=180) as resp:
-                status = resp.status
-                print(f"[Codex] HTTP {status}，正在读取响应…")
+                print(f"[Codex] HTTP {resp.status}, reading...", flush=True)
                 raw = resp.read()
-                print(f"[Codex] 读取完成，{len(raw)} 字节")
+                print(f"[Codex] read {len(raw)} bytes", flush=True)
                 data = json.loads(raw.decode("utf-8"))
 
-            code = data["choices"][0]["message"]["content"]
+            print(f"[Codex] choices count: {len(data.get('choices', []))}", flush=True)
+            msg = data["choices"][0]["message"]
+            print(f"[Codex] msg type: {type(msg).__name__}", flush=True)
+            if isinstance(msg, dict):
+                for k, v in msg.items():
+                    preview = repr(v)[:300] if v else "(empty)"
+                    print(f"[Codex]   msg.{k} = {preview}", flush=True)
+                print(f"[Codex] msg keys: {list(msg.keys())}", flush=True)
+                code = msg.get("content") or msg.get("reasoning_content") or ""
+            else:
+                code = str(msg)
+            print(f"[Codex] chosen code: {repr(code[:200]) if code else '(empty)'}", flush=True)
             code = _strip_markdown_fences(code)
             return code, None
         except urllib.error.HTTPError as e:
@@ -115,6 +166,7 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
         except Exception as e:
             import traceback
             traceback.print_exc()
+            print(f"[Codex] 未捕获异常: {type(e).__name__}: {e}", flush=True)
             return "", f"未知错误({type(e).__name__}): {e}"
 
         if attempt < 2:

@@ -5,6 +5,7 @@ from .operators import (
     CODEX_OT_clear_history,
     CODEX_OT_copy_code,
     CODEX_OT_clear_image,
+    CODEX_OT_open_text,
     CODE_HISTORY,
     LAST_CODE,
 )
@@ -45,6 +46,7 @@ class CODEX_PT_main(bpy.types.Panel):
         row.label(text="生成的脚本", icon="SCRIPT")
         if LAST_CODE:
             row.operator(CODEX_OT_copy_code.bl_idname, text="", icon="COPYDOWN")
+            row.operator(CODEX_OT_open_text.bl_idname, text="", icon="TEXT")
 
         box = layout.box()
         col = box.column(align=True)

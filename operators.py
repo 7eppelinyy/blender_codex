@@ -7,12 +7,26 @@ from . import codex_client
 CODE_HISTORY: list[dict] = []
 LAST_CODE: str = ""
 
+TEXT_NAME = "codex_output.py"
+
 _worker: threading.Thread | None = None
 _worker_result: tuple[str, str] | None = None
 _request_start_time: float = 0
 
 WORKER_CHECK_INTERVAL = 0.3
 API_TIMEOUT_ESTIMATE = 48.0
+
+
+def _write_to_text_editor(code: str):
+    """Create or update the code text block in Blender's Text Editor."""
+    try:
+        text = bpy.data.texts.get(TEXT_NAME)
+        if text is None:
+            text = bpy.data.texts.new(TEXT_NAME)
+        text.clear()
+        text.write(code)
+    except Exception:
+        pass
 
 
 def _do_request(prompt: str, image_path: str, history: list[dict] | None):
@@ -75,6 +89,7 @@ def _check_worker():
         prompt = scene.codex_prompt.strip() or "(图片识别)"
         CODE_HISTORY.append({"role": "user", "content": prompt})
         CODE_HISTORY.append({"role": "assistant", "content": code})
+        _write_to_text_editor(code)
         scene.codex_status = f"完成！生成了 {len(code)} 个字符的代码。"
     except Exception:
         pass
@@ -140,6 +155,8 @@ class CODEX_OT_execute_code(bpy.types.Operator):
 
         context.scene.codex_status = "正在执行…"
 
+        _write_to_text_editor(LAST_CODE)
+
         # 先检查语法，给出精确的错误位置
         try:
             compile(LAST_CODE, "<AI脚本>", "exec")
@@ -204,12 +221,34 @@ class CODEX_OT_clear_image(bpy.types.Operator):
         return {"FINISHED"}
 
 
+class CODEX_OT_open_text(bpy.types.Operator):
+    bl_idname = "codex.open_text"
+    bl_label = "在文本编辑器中查看"
+    bl_description = "在 Blender 文本编辑器中打开生成的代码"
+    bl_options = {"REGISTER"}
+
+    def execute(self, context):
+        text = bpy.data.texts.get(TEXT_NAME)
+        if text is None:
+            context.scene.codex_status = "尚未生成代码。"
+            return {"CANCELLED"}
+
+        for area in context.screen.areas:
+            if area.type == "TEXT_EDITOR":
+                area.spaces.active.text = text
+                return {"FINISHED"}
+
+        self.report({"INFO"}, f"代码已保存到 '{TEXT_NAME}'，请手动打开文本编辑器查看。")
+        return {"FINISHED"}
+
+
 classes = (
     CODEX_OT_send_prompt,
     CODEX_OT_execute_code,
     CODEX_OT_clear_history,
     CODEX_OT_copy_code,
     CODEX_OT_clear_image,
+    CODEX_OT_open_text,
 )
 
 
