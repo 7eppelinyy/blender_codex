@@ -355,23 +355,47 @@ def _sanitize_ascii(text: str) -> str:
 
 
 def _fix_api_compat(code: str) -> str:
-    """Fix deprecated Blender API calls in generated code for Blender 4.2.
+    """Fix deprecated Blender API calls and strip prohibited patterns.
 
-    LLMs are often trained on older Blender documentation and use removed
-    socket names. This function rewrites them before execution.
+    LLMs are often trained on older Blender docs.  This runs BEFORE
+    execution and is the last line of defence.
     """
     import re
 
-    fixes = [
-        # Principled BSDF: 'Specular' removed in 4.0 -> 'Specular IOR Level'
+    # 1. Socket name fixes for Blender 4.0+ Principled BSDF
+    socket_fixes = [
         (r"""inputs\[(['\"])Specular\1\]""",
          """inputs['Specular IOR Level']"""),
-        # Principled BSDF: 'Subsurface' removed in 4.0 -> 'Subsurface Weight'
         (r"""inputs\[(['\"])Subsurface\1\]""",
          """inputs['Subsurface Weight']"""),
     ]
-
-    for pattern, replacement in fixes:
+    for pattern, replacement in socket_fixes:
         code = re.sub(pattern, replacement, code)
+
+    # 2. Strip lines that try to enable addons (comment them out)
+    code = re.sub(
+        r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
+        r'# [Codex] removed: \g<0>',
+        code,
+        flags=re.MULTILINE,
+    )
+
+    # 3. Strip calls to operators that require optional addons
+    banned_ops = [
+        r'bpy\.ops\.mesh\.primitive_teapot_add',
+        r'bpy\.ops\.mesh\.primitive_geodesic_dome_add',
+        r'bpy\.ops\.mesh\.primitive_stepped_cylinder_add',
+        r'bpy\.ops\.mesh\.primitive_rounded_cube_add',
+        r'bpy\.ops\.mesh\.primitive_gear_add',
+        r'bpy\.ops\.mesh\.primitive_pipe_add',
+        r'bpy\.ops\.add\.torus_plus_add',
+    ]
+    for op_pattern in banned_ops:
+        code = re.sub(
+            rf'^.*{op_pattern}.*$',
+            r'# [Codex] removed (requires addon): \g<0>',
+            code,
+            flags=re.MULTILINE,
+        )
 
     return code
