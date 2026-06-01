@@ -8,24 +8,26 @@ class CodexPreferences(bpy.types.AddonPreferences):
     api_key: bpy.props.StringProperty(
         name="API 密钥",
         subtype="PASSWORD",
-        description="填入你的 API 密钥（OpenAI: sk-… / DeepSeek: sk-…）",
+        description="填入你的 API 密钥（OpenAI: sk-… / OpenRouter: sk-or-…）",
     )
     model: bpy.props.EnumProperty(
         name="模型",
         items=[
-            ("gpt-5.5", "GPT-5.5", "OpenAI 最新旗舰，3D 场景生成最强"),
-            ("gpt-5", "GPT-5", "OpenAI 旗舰模型"),
-            ("gpt-4o", "GPT-4o", "快速、强大，推荐使用"),
-            ("gpt-4.1", "GPT-4.1", "GPT-4 最新版"),
-            ("o3-mini", "o3-mini", "轻量推理模型"),
-            ("claude-opus-4-8", "Claude Opus 4.8", "Anthropic 最强模型"),
-            ("claude-sonnet-4-6", "Claude Sonnet 4.6", "Anthropic 快速模型"),
-            ("deepseek-v4-pro", "DeepSeek-V4 Pro", "DeepSeek 最新旗舰"),
-            ("deepseek-chat", "DeepSeek-V3", "DeepSeek 快速模型"),
-            ("deepseek-reasoner", "DeepSeek-R1", "DeepSeek 推理模型"),
+            # OpenAI 直连
+            ("gpt-5.5", "GPT-5.5 (OpenAI)", "OpenAI 最新旗舰"),
+            ("gpt-4o", "GPT-4o (OpenAI)", "快速强大"),
+            # OpenRouter 路由
+            ("openai/gpt-5.5", "GPT-5.5 (OpenRouter)", "OpenRouter 路由"),
+            ("openai/gpt-4o", "GPT-4o (OpenRouter)", "OpenRouter 路由"),
+            ("anthropic/claude-sonnet-4-6", "Claude Sonnet 4.6 (OpenRouter)", "Anthropic 快速"),
+            ("anthropic/claude-opus-4-8", "Claude Opus 4.8 (OpenRouter)", "Anthropic 最强"),
+            # DeepSeek
+            ("deepseek/deepseek-chat", "DeepSeek-V3 (OpenRouter)", "OpenRouter 路由"),
+            ("deepseek-v4-pro", "DeepSeek-V4 Pro", "DeepSeek 直连"),
+            ("deepseek-chat", "DeepSeek-V3", "DeepSeek 直连"),
         ],
         default="deepseek-v4-pro",
-        description="选择用于生成代码的 AI 模型",
+        description="选择模型（OpenRouter 用户请选带 OpenRouter 后缀的）",
     )
     max_tokens: bpy.props.IntProperty(
         name="最大 Token 数",
@@ -73,9 +75,14 @@ class CodexPreferences(bpy.types.AddonPreferences):
         box.label(text="设置指南", icon="INFO")
         col = box.column(align=True)
         col.label(text="OpenAI：platform.openai.com → API Keys")
+        col.label(text="API 地址填 https://api.openai.com/v1")
+        col.separator()
+        col.label(text="OpenRouter：openrouter.ai → API Keys")
+        col.label(text="API 地址填 https://openrouter.ai/api/v1")
+        col.label(text="模型选带 (OpenRouter) 后缀的")
+        col.separator()
         col.label(text="DeepSeek：platform.deepseek.com → API Keys")
-        col.label(text="将 API 地址设为 https://api.deepseek.com")
-        col.label(text="然后在上方粘贴你的密钥即可")
+        col.label(text="API 地址填 https://api.deepseek.com")
 
 
 def register():
