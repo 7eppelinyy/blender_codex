@@ -59,6 +59,12 @@ Blender 4.2 Principled BSDF — valid input socket names:
   DO NOT use these REMOVED socket names: 'Specular', 'Subsurface', 'Subsurface Color',
   'Subsurface Radius', 'Subsurface IOR', 'Subsurface Anisotropy'.
 
+Modifier rules (IMPORTANT — Blender 4.2 behaviour):
+- NEVER add BEVEL, SUBSURF, or any mesh modifier to a CURVE object. It will error.
+- If you create geometry via curves, convert to mesh FIRST: bpy.ops.object.convert(target='MESH')
+- After conversion, re-get the active object before adding modifiers.
+- Before context-dependent ops, ensure: obj.select_set(True) + bpy.context.view_layer.objects.active = obj
+
 Quality requirements:
 - ALWAYS clear the default cube before creating anything.
 - Use high segment counts for primitives (segments >= 64 for circles/spheres/cylinders).
@@ -86,11 +92,12 @@ Rules:
 - NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
 - NEVER use operators that require third-party or optional addons (e.g. `bpy.ops.mesh.primitive_teapot_add`). Use only standard Blender primitives + raw mesh API (`from_pydata`, curves + screw modifier, etc.) for complex shapes.
 - Blender 4.2 Principled BSDF valid input names: 'Base Color', 'Metallic', 'Roughness', 'IOR', 'Specular IOR Level', 'Alpha', 'Emission', 'Emission Strength', 'Transmission', 'Coat', 'Coat Roughness', 'Sheen', 'Sheen Tint', 'Clearcoat', 'Clearcoat Roughness', 'Anisotropic', 'Anisotropic Rotation', 'Tangent', 'Normal'. DO NOT use 'Specular' — it was REMOVED in Blender 4.0, use 'Specular IOR Level' instead.
+- Modifier rule: curves must be converted to mesh (bpy.ops.object.convert(target='MESH')) BEFORE adding BEVEL/SUBSURF modifiers.
 
 Quality requirements:
 - ALWAYS clear the default cube before creating anything.
 - Use high segment counts for curved primitives (segments >= 64).
-- Apply `shade_smooth()` on curved objects. Add BEVEL (segments=3, amount=0.02) and SUBSURF (levels=2) modifiers for smooth results.
+- Apply `shade_smooth()` on curved objects. Add BEVEL (segments=3, amount=0.02) and SUBSURF (levels=2) modifiers for smooth results (on MESH objects only).
 - Match colors from the image using Principled BSDF materials. Set Roughness, Metallic, and Specular IOR Level appropriately.
 - Set up a three-point lighting setup matching the image mood: key Area light (200W), fill Area light (100W), rim/back Area light (150W).
 - Add a subtle ground plane or floor.
