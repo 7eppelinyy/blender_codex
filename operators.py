@@ -140,8 +140,10 @@ def _check_worker():
             for _old, _new in _socket_renames.items():
                 code = code.replace(f"'{_old}'", f"'{_new}'")
                 code = code.replace(f'"{_old}"', f'"{_new}"')
-            # 修复不存在的节点类型
+            # 修复不存在的节点类型 / 修改器类型
             code = code.replace("ShaderNodeOutputVolume", "ShaderNodeOutputMaterial")
+            code = code.replace("'SMOOTH_BY_ANGLE'", "'BEVEL'")
+            code = code.replace('"SMOOTH_BY_ANGLE"', '"BEVEL"')
             code = re.sub(
                 r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
                 r'# [Codex] removed addon_enable call',
@@ -286,6 +288,8 @@ class CODEX_OT_execute_code(bpy.types.Operator):
 
         # 修复不存在的节点类型
         code = code.replace("ShaderNodeOutputVolume", "ShaderNodeOutputMaterial")
+        code = code.replace("'SMOOTH_BY_ANGLE'", "'BEVEL'")
+        code = code.replace('"SMOOTH_BY_ANGLE"', '"BEVEL"')
 
         # 2. 注释掉 addon_enable 调用
         code = re.sub(

@@ -60,10 +60,11 @@ Blender 4.2 Principled BSDF — valid input socket names:
   'Subsurface Radius', 'Subsurface IOR', 'Subsurface Anisotropy'.
 
 REMOVED Blender 4.x APIs — NEVER use these, they will error:
-- mesh.use_auto_smooth — REMOVED in 4.1. Use a Smooth by Angle modifier instead.
+- mesh.use_auto_smooth — REMOVED in 4.1. Use shade_smooth() + a small Bevel modifier instead.
 - mesh.auto_smooth_angle — REMOVED in 4.1.
 - object.data.use_auto_smooth — same as above, REMOVED.
 - mesh.beveldepth / mesh.extrude_depth — REMOVED in 2.8+. Use a Bevel or Solidify MODIFIER instead.
+- modifier type='SMOOTH_BY_ANGLE' — DOES NOT EXIST in Blender 4.2. Use 'BEVEL' (segments=3, limit_method='ANGLE') or 'SMOOTH' with 'CORRECTIVE_SMOOTH'.
 - Direct vertex weight assignment — use vertex groups via obj.vertex_groups.new() and group.add([idx], weight, 'REPLACE'). NEVER assign floats where BMDeformVert is expected.
 
 Modifier rules (IMPORTANT — Blender 4.2 behaviour):
@@ -459,7 +460,11 @@ def _fix_api_compat(code: str) -> str:
                 flags=re.MULTILINE,
             )
 
-        # 4. 注释掉 2.8+ 已移除的旧 API 属性
+        # 4. 修复不存在的修改器类型
+        code = code.replace("'SMOOTH_BY_ANGLE'", "'BEVEL'")
+        code = code.replace('"SMOOTH_BY_ANGLE"', '"BEVEL"')
+
+        # 5. 注释掉 2.8+ 已移除的旧 API 属性
         _removed_attrs = [
             r'\.beveldepth\s*=',
             r'\.extrude_depth\s*=',
