@@ -85,6 +85,27 @@ def _check_worker():
             _tag_redraw_all()
             return None
 
+        # 代码生成后立即修正，不等到执行
+        import re
+        code = code.replace("'Specular'", "'Specular IOR Level'")
+        code = code.replace('"Specular"', '"Specular IOR Level"')
+        code = re.sub(
+            r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
+            r'# [Codex] removed addon_enable call',
+            code, flags=re.MULTILINE,
+        )
+        code = re.sub(
+            r'^.*bpy\.ops\.mesh\.primitive_teapot_add.*$',
+            r'# [Codex] removed (requires addon)',
+            code, flags=re.MULTILINE,
+        )
+        code = re.sub(
+            r'^.*bpy\.ops\.curve\.tree_add.*$',
+            r'# [Codex] removed (requires addon)',
+            code, flags=re.MULTILINE,
+        )
+        print("[Codex] code patched on arrival", flush=True)
+
         LAST_CODE = code
         scene.codex_progress = 1.0
         prompt = scene.codex_prompt.strip() or "(图片识别)"
