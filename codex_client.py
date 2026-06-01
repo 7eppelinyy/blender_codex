@@ -175,67 +175,71 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
 
     last_error = ""
     # 设置 socket 级超时，防止 resp.read() 无限阻塞
-    import socket
-    socket.setdefaulttimeout(120)
-    for attempt in range(3):
-        req = urllib.request.Request(url, data=body, method="POST")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("Authorization", f"Bearer {api_key}")
+    import socket as _socket
+    _old_timeout = _socket.getdefaulttimeout()
+    _socket.setdefaulttimeout(120)
+    try:
+        for attempt in range(3):
+            req = urllib.request.Request(url, data=body, method="POST")
+            req.add_header("Content-Type", "application/json")
+            req.add_header("Authorization", f"Bearer {api_key}")
 
-        try:
-            print(f"[Codex] 第 {attempt + 1}/3 次尝试…", flush=True)
-            with opener.open(req, timeout=180) as resp:
-                print(f"[Codex] HTTP {resp.status}, reading...", flush=True)
-                raw = resp.read()
-                print(f"[Codex] read {len(raw)} bytes", flush=True)
-                data = json.loads(raw.decode("utf-8"))
-
-            print(f"[Codex] choices count: {len(data.get('choices', []))}", flush=True)
-            msg = data["choices"][0]["message"]
-            print(f"[Codex] msg type: {type(msg).__name__}", flush=True)
-            if isinstance(msg, dict):
-                for k, v in msg.items():
-                    preview = repr(v)[:300] if v else "(empty)"
-                    print(f"[Codex]   msg.{k} = {preview}", flush=True)
-                print(f"[Codex] msg keys: {list(msg.keys())}", flush=True)
-                code = msg.get("content") or msg.get("reasoning_content") or ""
-            else:
-                code = str(msg)
-            print(f"[Codex] chosen code: {repr(code[:200]) if code else '(empty)'}", flush=True)
-            code = _strip_markdown_fences(code)
-            code = _sanitize_ascii(code)
-            code = _fix_api_compat(code)
-            return code, None
-        except urllib.error.HTTPError as e:
             try:
-                detail = json.loads(e.read().decode("utf-8"))
-                msg = detail.get("error", {}).get("message", str(e))
-            except Exception:
-                msg = str(e)
-            return "", f"HTTP {e.code}: {msg}"
-        except urllib.error.URLError as e:
-            import traceback
-            traceback.print_exc()
-            last_error = f"网络错误: {e.reason}"
-        except OSError as e:
-            import traceback
-            traceback.print_exc()
-            last_error = f"连接失败(errno={e.errno}): {e.strerror or e}"
-        except (KeyError, IndexError, TypeError) as e:
-            import traceback
-            traceback.print_exc()
-            return "", f"API 返回格式异常: {e}"
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            print(f"[Codex] 未捕获异常: {type(e).__name__}: {e}", flush=True)
-            return "", f"未知错误({type(e).__name__}): {e}"
+                print(f"[Codex] 第 {attempt + 1}/3 次尝试…", flush=True)
+                with opener.open(req, timeout=180) as resp:
+                    print(f"[Codex] HTTP {resp.status}, reading...", flush=True)
+                    raw = resp.read()
+                    print(f"[Codex] read {len(raw)} bytes", flush=True)
+                    data = json.loads(raw.decode("utf-8"))
 
-        if attempt < 2:
-            import time
-            time.sleep(2)
+                print(f"[Codex] choices count: {len(data.get('choices', []))}", flush=True)
+                msg = data["choices"][0]["message"]
+                print(f"[Codex] msg type: {type(msg).__name__}", flush=True)
+                if isinstance(msg, dict):
+                    for k, v in msg.items():
+                        preview = repr(v)[:300] if v else "(empty)"
+                        print(f"[Codex]   msg.{k} = {preview}", flush=True)
+                    print(f"[Codex] msg keys: {list(msg.keys())}", flush=True)
+                    code = msg.get("content") or msg.get("reasoning_content") or ""
+                else:
+                    code = str(msg)
+                print(f"[Codex] chosen code: {repr(code[:200]) if code else '(empty)'}", flush=True)
+                code = _strip_markdown_fences(code)
+                code = _sanitize_ascii(code)
+                code = _fix_api_compat(code)
+                return code, None
+            except urllib.error.HTTPError as e:
+                try:
+                    detail = json.loads(e.read().decode("utf-8"))
+                    msg = detail.get("error", {}).get("message", str(e))
+                except Exception:
+                    msg = str(e)
+                return "", f"HTTP {e.code}: {msg}"
+            except urllib.error.URLError as e:
+                import traceback
+                traceback.print_exc()
+                last_error = f"网络错误: {e.reason}"
+            except OSError as e:
+                import traceback
+                traceback.print_exc()
+                last_error = f"连接失败(errno={e.errno}): {e.strerror or e}"
+            except (KeyError, IndexError, TypeError) as e:
+                import traceback
+                traceback.print_exc()
+                return "", f"API 返回格式异常: {e}"
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                print(f"[Codex] 未捕获异常: {type(e).__name__}: {e}", flush=True)
+                return "", f"未知错误({type(e).__name__}): {e}"
 
-    return "", f"{last_error}（重试 3 次后仍失败）"
+            if attempt < 2:
+                import time
+                time.sleep(2)
+
+        return "", f"{last_error}（重试 3 次后仍失败）"
+    finally:
+        _socket.setdefaulttimeout(_old_timeout)
 
 
 def _search_web(query: str, max_results: int = 5) -> str:
