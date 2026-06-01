@@ -417,6 +417,18 @@ def _fix_api_compat(code: str) -> str:
         if code != _before:
             print("[Codex] _fix_api_compat: replaced deprecated socket names", flush=True)
 
+        # 1b. Wrong node type names
+        _node_renames = {
+            "ShaderNodeOutputVolume": "ShaderNodeOutputMaterial",  # 不存在，用 Material Output
+            "ShaderNodeBsdfPrincipled": "ShaderNodeBsdfPrincipled",  # 正确，不替换
+        }
+        _before2 = code
+        for _old, _new in _node_renames.items():
+            if _old != _new:
+                code = code.replace(_old, _new)
+        if code != _before2:
+            print("[Codex] _fix_api_compat: replaced wrong node types", flush=True)
+
         # 2. Strip lines that enable addons
         code = re.sub(
             r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',

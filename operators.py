@@ -126,6 +126,8 @@ def _check_worker():
             for _old, _new in _socket_renames.items():
                 code = code.replace(f"'{_old}'", f"'{_new}'")
                 code = code.replace(f'"{_old}"', f'"{_new}"')
+            # 修复不存在的节点类型
+            code = code.replace("ShaderNodeOutputVolume", "ShaderNodeOutputMaterial")
             code = re.sub(
                 r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
                 r'# [Codex] removed addon_enable call',
@@ -260,6 +262,9 @@ class CODEX_OT_execute_code(bpy.types.Operator):
             code = code.replace(f'"{_old}"', f'"{_new}"')
             code = re.sub(rf"\[\s*'{re.escape(_old)}'\s*\]", f"['{_new}']", code)
             code = re.sub(rf'\[\s*"{re.escape(_old)}"\s*\]', f'["{_new}"]', code)
+
+        # 修复不存在的节点类型
+        code = code.replace("ShaderNodeOutputVolume", "ShaderNodeOutputMaterial")
 
         # 2. 注释掉 addon_enable 调用
         code = re.sub(
