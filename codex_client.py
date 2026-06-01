@@ -171,6 +171,9 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     opener = urllib.request.build_opener(proxy_handler)
 
     last_error = ""
+    # 设置 socket 级超时，防止 resp.read() 无限阻塞
+    import socket
+    socket.setdefaulttimeout(120)
     for attempt in range(3):
         req = urllib.request.Request(url, data=body, method="POST")
         req.add_header("Content-Type", "application/json")

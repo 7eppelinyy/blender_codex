@@ -32,11 +32,26 @@ def _write_to_text_editor(code: str):
 
 def _do_request(prompt: str, image_path: str, history: list[dict] | None):
     global _worker_result
-    if image_path:
-        code, error = codex_client.call_codex_vision(image_path, prompt)
-    else:
-        code, error = codex_client.call_codex(prompt, history)
-    _worker_result = (code or "", error or "")
+    # 兜底定时器：5 分钟后不管什么情况都强制返回
+    def _force_timeout():
+        if _worker_result is None:
+            print("[Codex] _force_timeout fired", flush=True)
+            _worker_result = ("", "请求超时：服务器响应卡住，已强制中断。")
+    timeout_timer = threading.Timer(300, _force_timeout)
+    timeout_timer.daemon = True
+    timeout_timer.start()
+    try:
+        if image_path:
+            code, error = codex_client.call_codex_vision(image_path, prompt)
+        else:
+            code, error = codex_client.call_codex(prompt, history)
+        if _worker_result is None:
+            _worker_result = (code or "", error or "")
+    except Exception as e:
+        if _worker_result is None:
+            _worker_result = ("", f"请求异常: {e}")
+    finally:
+        timeout_timer.cancel()
 
 
 def _tag_redraw_all():
