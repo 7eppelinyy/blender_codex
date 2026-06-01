@@ -63,8 +63,8 @@ REMOVED Blender 4.x APIs — NEVER use these, they will error:
 - mesh.use_auto_smooth — REMOVED in 4.1. Use a Smooth by Angle modifier instead.
 - mesh.auto_smooth_angle — REMOVED in 4.1.
 - object.data.use_auto_smooth — same as above, REMOVED.
-- Direct vertex weight assignment to mesh data — use vertex groups via obj.vertex_groups.new() and group.add([idx], weight, 'REPLACE'). NEVER assign floats where BMDeformVert is expected.
-- DO NOT manually construct or assign BMDeformVert objects — use the vertex group API.
+- mesh.beveldepth / mesh.extrude_depth — REMOVED in 2.8+. Use a Bevel or Solidify MODIFIER instead.
+- Direct vertex weight assignment — use vertex groups via obj.vertex_groups.new() and group.add([idx], weight, 'REPLACE'). NEVER assign floats where BMDeformVert is expected.
 
 Modifier rules (IMPORTANT — Blender 4.2 behaviour):
 - NEVER add BEVEL, SUBSURF, or any mesh modifier to a CURVE object. It will error.
@@ -455,6 +455,19 @@ def _fix_api_compat(code: str) -> str:
             code = re.sub(
                 rf'^.*{op_pattern}.*$',
                 r'# [Codex] removed (requires addon): \g<0>',
+                code,
+                flags=re.MULTILINE,
+            )
+
+        # 4. 注释掉 2.8+ 已移除的旧 API 属性
+        _removed_attrs = [
+            r'\.beveldepth\s*=',
+            r'\.extrude_depth\s*=',
+        ]
+        for _attr in _removed_attrs:
+            code = re.sub(
+                rf'^.*{_attr}.*$',
+                r'# [Codex] removed: deprecated 2.7x API (use modifiers)',
                 code,
                 flags=re.MULTILINE,
             )

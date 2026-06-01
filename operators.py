@@ -155,6 +155,13 @@ def _check_worker():
                 r'# [Codex] removed: use_auto_smooth removed in Blender 4.1',
                 code, flags=re.MULTILINE,
             )
+            # 注释掉 2.8+ 已移除的旧 API
+            for _attr in (r'\.beveldepth\s*=', r'\.extrude_depth\s*='):
+                code = re.sub(
+                    rf'^.*{_attr}.*$',
+                    r'# [Codex] removed: deprecated 2.7x API (use modifiers)',
+                    code, flags=re.MULTILINE,
+                )
             if code != _before:
                 print("[Codex] code patched on arrival", flush=True)
         else:
@@ -291,6 +298,13 @@ class CODEX_OT_execute_code(bpy.types.Operator):
             r'# [Codex] removed: use_auto_smooth removed in Blender 4.1',
             code, flags=re.MULTILINE,
         )
+        # 5. 注释掉 2.8+ 已移除的旧 API
+        for _attr in (r'\.beveldepth\s*=', r'\.extrude_depth\s*='):
+            code = re.sub(
+                rf'^.*{_attr}.*$',
+                r'# [Codex] removed: deprecated 2.7x API (use modifiers)',
+                code, flags=re.MULTILINE,
+            )
 
         if code != LAST_CODE:
             print("[Codex] inline patch applied!", flush=True)
