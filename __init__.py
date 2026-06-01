@@ -6,7 +6,7 @@ import pathlib
 bl_info = {
     "name": "Codex AI 建模助手",
     "author": "Zeppelin",
-    "version": (1, 3, 1),
+    "version": (1, 4, 0),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Codex",
     "description": "AI 驱动的 Blender 建模助手，支持文字描述和图片识别转 3D",

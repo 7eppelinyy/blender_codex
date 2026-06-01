@@ -137,6 +137,8 @@ def _check_worker():
             for _old, _new in _socket_renames.items():
                 code = code.replace(f"'{_old}'", f"'{_new}'")
                 code = code.replace(f'"{_old}"', f'"{_new}"')
+                code = re.sub(rf"\[\s*'{re.escape(_old)}'\s*\]", f"['{_new}']", code)
+                code = re.sub(rf'\[\s*"{re.escape(_old)}"\s*\]', f'["{_new}"]', code)
             # 修复不存在的节点类型 / 修改器类型
             code = code.replace("ShaderNodeOutputVolume", "ShaderNodeOutputMaterial")
             code = code.replace("'SMOOTH_BY_ANGLE'", "'BEVEL'")

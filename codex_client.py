@@ -1,6 +1,5 @@
 import json
 import re
-import sys
 import base64
 import urllib.request
 import urllib.error
@@ -56,8 +55,10 @@ Blender 4.2 Principled BSDF — valid input socket names:
   * 'Tangent'        (vector)
   * 'Clearcoat'      (float)
   * 'Clearcoat Roughness' (float)
-  DO NOT use these REMOVED socket names: 'Specular', 'Subsurface', 'Subsurface Color',
-  'Subsurface Radius', 'Subsurface IOR', 'Subsurface Anisotropy'.
+  DO NOT use these REMOVED/RENAMED socket names: 'Specular' (now 'Specular IOR Level'),
+  'Subsurface' (now 'Subsurface Weight'), 'Subsurface Color' (removed entirely),
+  'Transmission' (now 'Transmission Weight'), 'Coat' (now 'Coat Weight'),
+  'Sheen' (now 'Sheen Weight').
 
 REMOVED Blender 4.x APIs — NEVER use these, they will error:
 - mesh.use_auto_smooth — REMOVED in 4.1. Use shade_smooth() + a small Bevel modifier instead.
@@ -296,8 +297,6 @@ def call_codex(prompt: str, history: list[dict] | None = None) -> tuple[str, str
         messages.extend(history)
     messages.append({"role": "user", "content": user_content})
     code, err = _api_request(messages)
-    if not err:
-        code = _fix_api_compat(code)
     return code, err
 
 
@@ -331,8 +330,6 @@ def call_codex_vision(image_path: str, prompt: str) -> tuple[str, str | None]:
         },
     ]
     code, err = _api_request(messages)
-    if not err:
-        code = _fix_api_compat(code)
     return code, err
 
 

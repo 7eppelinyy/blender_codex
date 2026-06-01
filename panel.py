@@ -6,7 +6,6 @@ from .operators import (
     CODEX_OT_copy_code,
     CODEX_OT_clear_image,
     CODEX_OT_open_text,
-    CODE_HISTORY,
     LAST_CODE,
 )
 
