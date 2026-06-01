@@ -106,6 +106,12 @@ def _check_worker():
                 r'# [Codex] removed (requires addon)',
                 code, flags=re.MULTILINE,
             )
+            # 4. 注释掉 use_auto_smooth (Blender 4.1+ 已移除)
+            code = re.sub(
+                r'^.*\.use_auto_smooth\s*=.*$',
+                r'# [Codex] removed: use_auto_smooth removed in Blender 4.1',
+                code, flags=re.MULTILINE,
+            )
             if code != _before:
                 print("[Codex] code patched on arrival", flush=True)
         else:
@@ -217,6 +223,13 @@ class CODEX_OT_execute_code(bpy.types.Operator):
                 r'# [Codex] removed (requires addon)',
                 code, flags=re.MULTILINE,
             )
+
+        # 4. 注释掉 use_auto_smooth (Blender 4.1+ 已移除)
+        code = re.sub(
+            r'^.*\.use_auto_smooth\s*=.*$',
+            r'# [Codex] removed: use_auto_smooth removed in Blender 4.1',
+            code, flags=re.MULTILINE,
+        )
 
         if code != LAST_CODE:
             print("[Codex] inline patch applied!", flush=True)

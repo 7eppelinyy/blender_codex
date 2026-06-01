@@ -59,6 +59,11 @@ Blender 4.2 Principled BSDF — valid input socket names:
   DO NOT use these REMOVED socket names: 'Specular', 'Subsurface', 'Subsurface Color',
   'Subsurface Radius', 'Subsurface IOR', 'Subsurface Anisotropy'.
 
+REMOVED Blender 4.x APIs — NEVER use these, they will error:
+- mesh.use_auto_smooth — REMOVED in 4.1. Use a Smooth by Angle modifier instead.
+- mesh.auto_smooth_angle — REMOVED in 4.1.
+- object.data.use_auto_smooth — same as above, REMOVED.
+
 Modifier rules (IMPORTANT — Blender 4.2 behaviour):
 - NEVER add BEVEL, SUBSURF, or any mesh modifier to a CURVE object. It will error.
 - If you create geometry via curves, convert to mesh FIRST: bpy.ops.object.convert(target='MESH')
