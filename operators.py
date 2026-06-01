@@ -56,6 +56,17 @@ def _check_worker():
     if _worker is not None and _worker.is_alive():
         try:
             elapsed = time.time() - _request_start_time
+            # 硬超时：5 分钟后强制放弃
+            if elapsed > 300:
+                print(f"[Codex] 硬超时（{int(elapsed)}秒），放弃等待", flush=True)
+                _worker = None
+                _worker_result = None
+                scene = bpy.context.scene
+                scene.codex_loading = False
+                scene.codex_status = "错误：请求超时（5 分钟无响应），请检查代理设置。"
+                scene.codex_progress = 0.0
+                _tag_redraw_all()
+                return None
             progress = min(elapsed / API_TIMEOUT_ESTIMATE, 0.92)
             scene = bpy.context.scene
             scene.codex_progress = progress
@@ -113,6 +124,12 @@ def _check_worker():
             code = re.sub(
                 r'^.*bpy\.ops\.curve\.tree_add.*$',
                 r'# [Codex] removed (requires addon)',
+                code, flags=re.MULTILINE,
+            )
+            # 注释掉 bpy.ops.render.render（锁死 UI）
+            code = re.sub(
+                r'^.*bpy\.ops\.render\.render.*$',
+                r'# [Codex] removed: auto-render blocks UI',
                 code, flags=re.MULTILINE,
             )
             # 注释掉 use_auto_smooth (Blender 4.1+ 已移除)
@@ -236,10 +253,11 @@ class CODEX_OT_execute_code(bpy.types.Operator):
             code, flags=re.MULTILINE,
         )
 
-        # 3. 注释掉需扩展的操作符
+        # 3. 注释掉需扩展的操作符 + 禁止自动渲染
         for banned in (
             'bpy\\.ops\\.mesh\\.primitive_teapot_add',
             'bpy\\.ops\\.curve\\.tree_add',
+            'bpy\\.ops\\.render\\.render',
         ):
             code = re.sub(
                 rf'^.*{banned}.*$',
@@ -269,6 +287,16 @@ class CODEX_OT_execute_code(bpy.types.Operator):
         LAST_CODE = code
 
         _write_to_text_editor(LAST_CODE)
+
+        # 调试：保存代码到桌面方便排查
+        try:
+            import os as _os
+            _dump = _os.path.join(_os.path.expanduser("~"), "Desktop", "codex_debug.py")
+            with open(_dump, "w", encoding="utf-8") as _f:
+                _f.write(LAST_CODE)
+            print(f"[Codex] 调试代码已保存: {_dump}", flush=True)
+        except Exception as _e:
+            print(f"[Codex] 保存调试代码失败: {_e}", flush=True)
 
         # 先检查语法，给出精确的错误位置
         try:

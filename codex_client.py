@@ -114,12 +114,11 @@ Quality requirements:
 - Set World surface to a soft dark or neutral background (Background node, strength 0.05–0.15).
 - Set up a camera framing the subject at a flattering angle, render resolution 1920x1080 at 100%.
 - Use Cycles engine with 128 samples and enable OpenImageDenoise.
-- If the user says "render" or "渲染", set the output path to the Desktop FIRST, then render:
+- NEVER call bpy.ops.render.render() — just set up the scene, the user will render manually.
+- If setting render output path, use the Desktop:
     import os
-    out = os.path.join(os.path.expanduser("~"), "Desktop", "blender_render.png")
-    bpy.context.scene.render.filepath = out
-    bpy.ops.render.render(write_still=True)
-  NEVER use C:\Windows\system32 or any system directory as render output!
+    bpy.context.scene.render.filepath = os.path.join(os.path.expanduser("~"), "Desktop", "blender_render.png")
+  NEVER use C:\Windows\system32 or any system directory!
 - Always include a final `print("Done.")` at the end.
 - Keep code concise and readable.
 """)
@@ -433,6 +432,7 @@ def _fix_api_compat(code: str) -> str:
             r'bpy\.ops\.mesh\.primitive_pipe_add',
             r'bpy\.ops\.add\.torus_plus_add',
             r'bpy\.ops\.curve\.tree_add',         # Sapling addon
+            r'bpy\.ops\.render\.render',         # block UI for minutes
         ]
         for op_pattern in banned_ops:
             code = re.sub(
