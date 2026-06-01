@@ -45,10 +45,10 @@ Blender 4.2 Principled BSDF — valid input socket names:
   * 'Normal'         (vector)
   * 'Emission'       (RGBA)
   * 'Emission Strength' (float)
-  * 'Transmission'   (float)
-  * 'Coat'           (float)
+  * 'Transmission Weight' (float) — replaces old 'Transmission' (REMOVED in 4.0)
+  * 'Coat Weight'    (float) — replaces old 'Coat' (REMOVED in 4.0)
   * 'Coat Roughness' (float)
-  * 'Sheen'          (float)
+  * 'Sheen Weight'   (float) — replaces old 'Sheen' (REMOVED in 4.0)
   * 'Sheen Tint'     (float)
   * 'Specular IOR Level' (float) — replaces the old 'Specular' (REMOVED in 4.0)
   * 'Anisotropic'    (float)
@@ -83,12 +83,11 @@ Quality requirements:
 - Set the World surface to a soft gradient color (use Background node with 0.05–0.15 strength).
 - Set up a camera at a flattering angle framing the subject, and set render resolution to 1920x1080 at 100%.
 - Use Cycles engine with 128 samples and enable OpenImageDenoise.
-- If the user says "render" or "渲染", set the output path to the Desktop FIRST, then render:
+- NEVER call bpy.ops.render.render() — just set up the scene, the user will render manually.
+- If setting render output path, use the Desktop:
     import os
-    out = os.path.join(os.path.expanduser("~"), "Desktop", "blender_render.png")
-    bpy.context.scene.render.filepath = out
-    bpy.ops.render.render(write_still=True)
-  NEVER use C:\Windows\system32 or any system directory as render output!
+    bpy.context.scene.render.filepath = os.path.join(os.path.expanduser("~"), "Desktop", "blender_render.png")
+  NEVER use C:\Windows\system32 or any system directory!
 - Always include a final `print("Done.")` at the end.
 - Keep code concise and readable.
 """)
@@ -136,7 +135,7 @@ def get_api_config():
         pass
 
     if prefs is None:
-        return None, None, None, None
+        return None, None, None, None, None, None
 
     return (
         prefs.api_key,
@@ -242,7 +241,12 @@ def _search_web(query: str, max_results: int = 5) -> str:
     """Search DuckDuckGo and return formatted results as plain text."""
     url = f"https://html.duckduckgo.com/html/?q={urllib.parse.quote(query)}"
     req = urllib.request.Request(url, headers={"User-Agent": "BlenderCodex/1.0"})
-    proxy_handler = urllib.request.ProxyHandler({})
+    # 跟 API 请求用同样的代理设置
+    _, _, _, _, _, proxy = get_api_config() or (None,)*6
+    if proxy:
+        proxy_handler = urllib.request.ProxyHandler({"https": proxy})
+    else:
+        proxy_handler = urllib.request.ProxyHandler()  # 使用系统代理
     search_opener = urllib.request.build_opener(proxy_handler)
     try:
         with search_opener.open(req, timeout=10) as resp:
@@ -421,16 +425,7 @@ def _fix_api_compat(code: str) -> str:
             print("[Codex] _fix_api_compat: replaced deprecated socket names", flush=True)
 
         # 1b. Wrong node type names
-        _node_renames = {
-            "ShaderNodeOutputVolume": "ShaderNodeOutputMaterial",  # 不存在，用 Material Output
-            "ShaderNodeBsdfPrincipled": "ShaderNodeBsdfPrincipled",  # 正确，不替换
-        }
-        _before2 = code
-        for _old, _new in _node_renames.items():
-            if _old != _new:
-                code = code.replace(_old, _new)
-        if code != _before2:
-            print("[Codex] _fix_api_compat: replaced wrong node types", flush=True)
+        code = code.replace("ShaderNodeOutputVolume", "ShaderNodeOutputMaterial")
 
         # 2. Strip lines that enable addons
         code = re.sub(

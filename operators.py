@@ -3,7 +3,6 @@ import time
 import threading
 import bpy
 from . import codex_client
-from .codex_client import _fix_api_compat
 
 CODE_HISTORY: list[dict] = []
 LAST_CODE: str = ""
@@ -34,14 +33,12 @@ def _do_request(prompt: str, image_path: str, history: list[dict] | None):
     global _worker_result
     # 兜底定时器：10 分钟后不管什么情况都强制返回
     # 复杂森林场景的 API 响应可能需要 5-8 分钟
-    _timeout_result = [None]
 
     def _force_timeout():
         global _worker_result
         if _worker_result is None:
             print("[Codex] _force_timeout fired (10 min)", flush=True)
             _worker_result = ("", "请求超时（10分钟）：请减小场景复杂度或降低 Token 上限重试。")
-            _timeout_result[0] = True
 
     timeout_timer = threading.Timer(600, _force_timeout)
     timeout_timer.daemon = True
