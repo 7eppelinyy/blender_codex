@@ -101,7 +101,7 @@ Rules:
 - Code must be complete and self-contained — import bpy if needed.
 - NEVER call `addon_utils.enable()` or `bpy.ops.preferences.addon_enable()`.
 - NEVER use operators that require third-party or optional addons (e.g. `bpy.ops.mesh.primitive_teapot_add`). Use only standard Blender primitives + raw mesh API (`from_pydata`, curves + screw modifier, etc.) for complex shapes.
-- Blender 4.2 Principled BSDF valid input names: 'Base Color', 'Metallic', 'Roughness', 'IOR', 'Specular IOR Level', 'Alpha', 'Emission', 'Emission Strength', 'Transmission', 'Coat', 'Coat Roughness', 'Sheen', 'Sheen Tint', 'Clearcoat', 'Clearcoat Roughness', 'Anisotropic', 'Anisotropic Rotation', 'Tangent', 'Normal'. DO NOT use 'Specular' — it was REMOVED in Blender 4.0, use 'Specular IOR Level' instead.
+- Blender 4.2 Principled BSDF valid input names: 'Base Color', 'Metallic', 'Roughness', 'IOR', 'Specular IOR Level', 'Alpha', 'Emission', 'Emission Strength', 'Transmission Weight', 'Coat Weight', 'Coat Roughness', 'Sheen Weight', 'Sheen Tint', 'Clearcoat', 'Clearcoat Roughness', 'Anisotropic', 'Anisotropic Rotation', 'Tangent', 'Normal'. DO NOT use 'Specular', 'Subsurface', 'Transmission', 'Coat', 'Sheen' — they were RENAMED/REMOVED in Blender 4.0, use 'Specular IOR Level' / 'Subsurface Weight' / 'Transmission Weight' / 'Coat Weight' / 'Sheen Weight' instead.
 - Modifier rule: curves must be converted to mesh (bpy.ops.object.convert(target='MESH')) BEFORE adding BEVEL/SUBSURF modifiers.
 
 Quality requirements:
@@ -142,12 +142,13 @@ def get_api_config():
         prefs.max_tokens,
         prefs.temperature,
         prefs.api_base,
+        getattr(prefs, "proxy", ""),
     )
 
 
 def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     """Send messages to API, return (content, error).  Retries on network errors."""
-    api_key, model, max_tokens, temperature, api_base = get_api_config()
+    api_key, model, max_tokens, temperature, api_base, proxy = get_api_config()
 
     if not api_key:
         return "", "请先在偏好设置中填入 API Key。"
@@ -162,8 +163,12 @@ def _api_request(messages: list[dict]) -> tuple[str, str | None]:
     url = f"{api_base.rstrip('/')}/chat/completions"
     print(f"[Codex] 请求: model={model} url={url} key_len={len(api_key)}", flush=True)
 
-    # 直连，跳过系统代理（代理可能干扰 HTTPS 连接）
-    proxy_handler = urllib.request.ProxyHandler({})
+    # 代理设置：优先用用户指定的，否则用系统代理
+    if proxy:
+        proxy_handler = urllib.request.ProxyHandler({"https": proxy})
+        print(f"[Codex] 使用代理: {proxy}", flush=True)
+    else:
+        proxy_handler = urllib.request.ProxyHandler()  # 使用系统代理
     opener = urllib.request.build_opener(proxy_handler)
 
     last_error = ""
@@ -396,10 +401,17 @@ def _fix_api_compat(code: str) -> str:
 
         # 1. Socket name fixes — str.replace(), bulletproof
         _before = code
-        code = code.replace("['Specular']", "['Specular IOR Level']")
-        code = code.replace('["Specular"]', '["Specular IOR Level"]')
-        code = code.replace("['Subsurface']", "['Subsurface Weight']")
-        code = code.replace('["Subsurface"]', '["Subsurface Weight"]')
+        # All the socket renames in Blender 4.0+ Principled BSDF
+        _renames = [
+            ("Specular", "Specular IOR Level"),
+            ("Subsurface", "Subsurface Weight"),
+            ("Transmission", "Transmission Weight"),
+            ("Coat", "Coat Weight"),
+            ("Sheen", "Sheen Weight"),
+        ]
+        for _old, _new in _renames:
+            code = code.replace(f"['{_old}']", f"['{_new}']")
+            code = code.replace(f'["{_old}"]', f'["{_new}"]')
         if code != _before:
             print("[Codex] _fix_api_compat: replaced deprecated socket names", flush=True)
 

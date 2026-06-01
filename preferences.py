@@ -50,6 +50,11 @@ class CodexPreferences(bpy.types.AddonPreferences):
         default="https://api.openai.com/v1",
         description="兼容 OpenAI 协议的 API 端点（支持代理和镜像站）",
     )
+    proxy: bpy.props.StringProperty(
+        name="代理地址",
+        default="",
+        description="HTTP 代理，格式 http://127.0.0.1:7890（留空则使用系统代理）",
+    )
     enable_search: bpy.props.BoolProperty(
         name="启用联网搜索",
         default=False,
@@ -63,6 +68,7 @@ class CodexPreferences(bpy.types.AddonPreferences):
         col = layout.column(heading="API 密钥")
         col.prop(self, "api_key", text="")
         col.prop(self, "api_base")
+        col.prop(self, "proxy")
 
         layout.separator()
         layout.prop(self, "model")

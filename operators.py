@@ -89,8 +89,17 @@ def _check_worker():
         if isinstance(code, str) and code:
             import re
             _before = code
-            code = code.replace("'Specular'", "'Specular IOR Level'")
-            code = code.replace('"Specular"', '"Specular IOR Level"')
+            # 修复 Blender 4.0+ Principled BSDF socket 名称变更
+            _socket_renames = {
+                "Specular": "Specular IOR Level",
+                "Subsurface": "Subsurface Weight",
+                "Transmission": "Transmission Weight",
+                "Coat": "Coat Weight",
+                "Sheen": "Sheen Weight",
+            }
+            for _old, _new in _socket_renames.items():
+                code = code.replace(f"'{_old}'", f"'{_new}'")
+                code = code.replace(f'"{_old}"', f'"{_new}"')
             code = re.sub(
                 r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
                 r'# [Codex] removed addon_enable call',
@@ -106,7 +115,7 @@ def _check_worker():
                 r'# [Codex] removed (requires addon)',
                 code, flags=re.MULTILINE,
             )
-            # 4. 注释掉 use_auto_smooth (Blender 4.1+ 已移除)
+            # 注释掉 use_auto_smooth (Blender 4.1+ 已移除)
             code = re.sub(
                 r'^.*\.use_auto_smooth\s*=.*$',
                 r'# [Codex] removed: use_auto_smooth removed in Blender 4.1',
@@ -189,29 +198,36 @@ class CODEX_OT_execute_code(bpy.types.Operator):
             return {"CANCELLED"}
 
         print(f"[Codex] EXECUTE starting, LAST_CODE has {len(LAST_CODE)} chars", flush=True)
-        # 在 exec 前搜索所有 'Specular' 位置
+        # 在 exec 前搜索所有废弃 socket 名称
         import re as _re2
+        _bad_sockets = ["Specular", "Subsurface", "Transmission", "Coat", "Sheen"]
         for _i, _line in enumerate(LAST_CODE.split('\n'), 1):
-            if "'Specular'" in _line or '"Specular"' in _line:
-                print(f"[Codex] FOUND 'Specular' at line {_i}: {_line.strip()[:120]}", flush=True)
+            for _bad in _bad_sockets:
+                if f"'{_bad}'" in _line or f'"{_bad}"' in _line:
+                    print(f"[Codex] FOUND '{_bad}' at line {_i}: {_line.strip()[:120]}", flush=True)
+                    break
 
         context.scene.codex_status = "正在执行…"
 
         # ═══════════════════════════════════════════════════════════
-        # 内联代码修正（Blender 4.2 兼容性）—— 不用任何 import，
-        # 纯 str.replace()，绝不会静默失败。
+        # 内联代码修正（Blender 4.2 兼容性）
         # ═══════════════════════════════════════════════════════════
         import re
         code = LAST_CODE
 
-        # 1. 废弃 socket 名 → 4.2 新版名称
-        #    用最暴力的方式：替换所有带引号的 'Specular' 字符串，
-        #    不管它出现在 inputs['Specular']、列表里、还是任何地方。
-        #    同时也处理带空格的变体 [ 'Specular' ]。
-        code = code.replace("'Specular'", "'Specular IOR Level'")
-        code = code.replace('"Specular"', '"Specular IOR Level"')
-        code = re.sub(r"\[\s*'Specular'\s*\]", "['Specular IOR Level']", code)
-        code = re.sub(r'\[\s*"Specular"\s*\]', '["Specular IOR Level"]', code)
+        # 1. Blender 4.0+ Principled BSDF socket 名称变更
+        _socket_renames = {
+            "Specular": "Specular IOR Level",
+            "Subsurface": "Subsurface Weight",
+            "Transmission": "Transmission Weight",
+            "Coat": "Coat Weight",
+            "Sheen": "Sheen Weight",
+        }
+        for _old, _new in _socket_renames.items():
+            code = code.replace(f"'{_old}'", f"'{_new}'")
+            code = code.replace(f'"{_old}"', f'"{_new}"')
+            code = re.sub(rf"\[\s*'{re.escape(_old)}'\s*\]", f"['{_new}']", code)
+            code = re.sub(rf'\[\s*"{re.escape(_old)}"\s*\]', f'["{_new}"]', code)
 
         # 2. 注释掉 addon_enable 调用
         code = re.sub(
@@ -241,12 +257,14 @@ class CODEX_OT_execute_code(bpy.types.Operator):
         if code != LAST_CODE:
             print("[Codex] inline patch applied!", flush=True)
 
-        # 最终检查：代码里还剩 'Specular' 吗？
-        if "'Specular'" in code or '"Specular"' in code:
-            import re as _re
-            for _i, _line in enumerate(code.split('\n'), 1):
-                if _re.search(r"""['"]Specular['"]""", _line) and 'IOR Level' not in _line:
-                    print(f"[Codex] WARNING: residual 'Specular' at line {_i}: {_line.strip()}", flush=True)
+        # 最终检查：代码里还剩废弃 socket 名称吗？
+        _residual_sockets = ["Specular", "Subsurface", "Transmission", "Coat", "Sheen"]
+        for _bad in _residual_sockets:
+            if f"'{_bad}'" in code or f'"{_bad}"' in code:
+                import re as _re
+                for _i, _line in enumerate(code.split('\n'), 1):
+                    if _re.search(rf"""['"]{re.escape(_bad)}['"]""", _line) and 'Weight' not in _line and 'IOR' not in _line:
+                        print(f"[Codex] WARNING: residual '{_bad}' at line {_i}: {_line.strip()}", flush=True)
 
         LAST_CODE = code
 
