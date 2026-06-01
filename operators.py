@@ -15,7 +15,7 @@ _worker_result: tuple[str, str] | None = None
 _request_start_time: float = 0
 
 WORKER_CHECK_INTERVAL = 0.3
-API_TIMEOUT_ESTIMATE = 48.0
+API_TIMEOUT_ESTIMATE = 180.0  # 复杂场景可能需要数分钟
 
 
 def _write_to_text_editor(code: str):
@@ -32,12 +32,18 @@ def _write_to_text_editor(code: str):
 
 def _do_request(prompt: str, image_path: str, history: list[dict] | None):
     global _worker_result
-    # 兜底定时器：5 分钟后不管什么情况都强制返回
+    # 兜底定时器：10 分钟后不管什么情况都强制返回
+    # 复杂森林场景的 API 响应可能需要 5-8 分钟
+    _timeout_result = [None]
+
     def _force_timeout():
+        global _worker_result
         if _worker_result is None:
-            print("[Codex] _force_timeout fired", flush=True)
-            _worker_result = ("", "请求超时：服务器响应卡住，已强制中断。")
-    timeout_timer = threading.Timer(300, _force_timeout)
+            print("[Codex] _force_timeout fired (10 min)", flush=True)
+            _worker_result = ("", "请求超时（10分钟）：请减小场景复杂度或降低 Token 上限重试。")
+            _timeout_result[0] = True
+
+    timeout_timer = threading.Timer(600, _force_timeout)
     timeout_timer.daemon = True
     timeout_timer.start()
     try:
@@ -71,14 +77,22 @@ def _check_worker():
     if _worker is not None and _worker.is_alive():
         try:
             elapsed = time.time() - _request_start_time
-            # 硬超时：5 分钟后强制放弃
-            if elapsed > 300:
+            # 如果结果已经到了但线程还没退出，直接取结果
+            if _worker_result is not None:
+                # 结果已到达，等待线程自然退出
+                _worker.join(timeout=2)
+                if _worker.is_alive():
+                    pass  # 还在等，下一个周期再检查
+                # 直接跳到结果处理（让下一轮 _check_worker 处理）
+                return WORKER_CHECK_INTERVAL
+            # 硬超时：10 分钟后强制放弃（复杂场景可达 5-8 分钟）
+            if elapsed > 600:
                 print(f"[Codex] 硬超时（{int(elapsed)}秒），放弃等待", flush=True)
                 _worker = None
                 _worker_result = None
                 scene = bpy.context.scene
                 scene.codex_loading = False
-                scene.codex_status = "错误：请求超时（5 分钟无响应），请检查代理设置。"
+                scene.codex_status = "错误：请求超时（10分钟），请降低 Token 上限或简化描述。"
                 scene.codex_progress = 0.0
                 _tag_redraw_all()
                 return None
