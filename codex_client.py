@@ -80,7 +80,12 @@ Quality requirements:
 - Set the World surface to a soft gradient color (use Background node with 0.05–0.15 strength).
 - Set up a camera at a flattering angle framing the subject, and set render resolution to 1920x1080 at 100%.
 - Use Cycles engine with 128 samples and enable OpenImageDenoise.
-- If the user says "render" or "渲染", add `bpy.ops.render.render(write_still=True)` at the end.
+- If the user says "render" or "渲染", set the output path to the Desktop FIRST, then render:
+    import os
+    out = os.path.join(os.path.expanduser("~"), "Desktop", "blender_render.png")
+    bpy.context.scene.render.filepath = out
+    bpy.ops.render.render(write_still=True)
+  NEVER use C:\Windows\system32 or any system directory as render output!
 - Always include a final `print("Done.")` at the end.
 - Keep code concise and readable.
 """)
@@ -109,7 +114,12 @@ Quality requirements:
 - Set World surface to a soft dark or neutral background (Background node, strength 0.05–0.15).
 - Set up a camera framing the subject at a flattering angle, render resolution 1920x1080 at 100%.
 - Use Cycles engine with 128 samples and enable OpenImageDenoise.
-- If the user says "render" or "渲染", add `bpy.ops.render.render(write_still=True)` at the end.
+- If the user says "render" or "渲染", set the output path to the Desktop FIRST, then render:
+    import os
+    out = os.path.join(os.path.expanduser("~"), "Desktop", "blender_render.png")
+    bpy.context.scene.render.filepath = out
+    bpy.ops.render.render(write_still=True)
+  NEVER use C:\Windows\system32 or any system directory as render output!
 - Always include a final `print("Done.")` at the end.
 - Keep code concise and readable.
 """)
