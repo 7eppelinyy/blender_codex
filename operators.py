@@ -86,25 +86,30 @@ def _check_worker():
             return None
 
         # 代码生成后立即修正，不等到执行
-        import re
-        code = code.replace("'Specular'", "'Specular IOR Level'")
-        code = code.replace('"Specular"', '"Specular IOR Level"')
-        code = re.sub(
-            r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
-            r'# [Codex] removed addon_enable call',
-            code, flags=re.MULTILINE,
-        )
-        code = re.sub(
-            r'^.*bpy\.ops\.mesh\.primitive_teapot_add.*$',
-            r'# [Codex] removed (requires addon)',
-            code, flags=re.MULTILINE,
-        )
-        code = re.sub(
-            r'^.*bpy\.ops\.curve\.tree_add.*$',
-            r'# [Codex] removed (requires addon)',
-            code, flags=re.MULTILINE,
-        )
-        print("[Codex] code patched on arrival", flush=True)
+        if isinstance(code, str) and code:
+            import re
+            _before = code
+            code = code.replace("'Specular'", "'Specular IOR Level'")
+            code = code.replace('"Specular"', '"Specular IOR Level"')
+            code = re.sub(
+                r'^.*(addon_utils\.enable|bpy\.ops\.preferences\.addon_enable).*$',
+                r'# [Codex] removed addon_enable call',
+                code, flags=re.MULTILINE,
+            )
+            code = re.sub(
+                r'^.*bpy\.ops\.mesh\.primitive_teapot_add.*$',
+                r'# [Codex] removed (requires addon)',
+                code, flags=re.MULTILINE,
+            )
+            code = re.sub(
+                r'^.*bpy\.ops\.curve\.tree_add.*$',
+                r'# [Codex] removed (requires addon)',
+                code, flags=re.MULTILINE,
+            )
+            if code != _before:
+                print("[Codex] code patched on arrival", flush=True)
+        else:
+            print(f"[Codex] WARNING: code is {type(code).__name__}, skipping patch", flush=True)
 
         LAST_CODE = code
         scene.codex_progress = 1.0
@@ -113,8 +118,10 @@ def _check_worker():
         CODE_HISTORY.append({"role": "assistant", "content": code})
         _write_to_text_editor(code)
         scene.codex_status = f"完成！生成了 {len(code)} 个字符的代码。"
-    except Exception:
-        pass
+    except Exception as _e:
+        import traceback
+        traceback.print_exc()
+        print(f"[Codex] _check_worker exception: {_e}", flush=True)
     finally:
         _tag_redraw_all()
 
