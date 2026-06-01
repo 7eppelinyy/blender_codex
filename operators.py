@@ -188,6 +188,13 @@ class CODEX_OT_execute_code(bpy.types.Operator):
             context.scene.codex_status = "尚未生成代码。"
             return {"CANCELLED"}
 
+        print(f"[Codex] EXECUTE starting, LAST_CODE has {len(LAST_CODE)} chars", flush=True)
+        # 在 exec 前搜索所有 'Specular' 位置
+        import re as _re2
+        for _i, _line in enumerate(LAST_CODE.split('\n'), 1):
+            if "'Specular'" in _line or '"Specular"' in _line:
+                print(f"[Codex] FOUND 'Specular' at line {_i}: {_line.strip()[:120]}", flush=True)
+
         context.scene.codex_status = "正在执行…"
 
         # ═══════════════════════════════════════════════════════════
